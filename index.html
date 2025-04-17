@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html ng-app="wsApp">
+<head>
+    <title>Chika Box - A Test Chat Web Application</title>
+    <!-- Include jQuery library -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include AngularJS library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link to SCSS file -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Include the application JavaScript -->
+    <script src="app.js"></script>
+</head>
+<body ng-controller="WebSocketController">
+    <h1>Chika Box 
+        <button class="debug-toggle" ng-click="toggleDebug()">{{debugMode ? 'Hide Debug' : 'Show Debug'}}</button>
+        <button class="server-toggle" ng-click="toggleServerInput()">{{showServerInput ? 'Hide Server Address' : 'Show Server Address'}}</button>
+    </h1>
+    
+    <div class="mobile-warning">
+        <strong>Mobile Device Detected:</strong> Make sure you're connected to the same network as the server.
+        If using iPhone, you may need to use the server's IP address instead of localhost.
+    </div>
+
+    <!-- Server Address Input - Always visible -->
+    <div class="server-input" ng-class="{'show': showServerInput}">
+        <label for="serverAddress">Server Address:</label>
+        <input type="text" id="serverAddress" ng-model="serverAddress" placeholder="ws://192.168.1.100:8080">
+        <small>(Default: ws://localhost:8080)</small>
+    </div>
+
+    <!-- Login form - shown when not connected -->
+    <div class="login-form" ng-hide="isConnected">
+        <h3>Enter your username to start chatting</h3>
+        <input type="text" ng-model="username" placeholder="Enter username" ng-keypress="connect($event)">
+        <button ng-click="connect()" ng-disabled="!username">Connect</button>
+        <div class="error-message" ng-show="errorMessage">{{errorMessage}}</div>
+    </div>
+
+    <!-- Chat interface - shown when connected -->
+    <div class="container" ng-show="isConnected">
+        <div class="chat-section">
+            <div id="status" hidden>{{status}}</div>
+            
+            <!-- Chat tabs -->
+            <div class="chat-tabs">
+                <div class="chat-tab" ng-class="{'active': activeTab === 'public'}" ng-click="switchTab('public')">
+                    Public Chat
+                </div>
+                <div class="chat-tab" ng-repeat="(recipient, messages) in privateChats" 
+                     ng-class="{'active': activeTab === recipient}" 
+                     ng-click="switchTab(recipient)">
+                    {{recipient}}
+                    <span class="close-tab" ng-click="closePrivateChat(recipient, $event)">&times;</span>
+                </div>
+            </div>
+
+            <!-- Public chat messages -->
+            <div class="chat-messages" ng-show="activeTab === 'public'">
+                <div id="messages">
+                    <div ng-repeat="message in messages" class="message {{message.type}}">
+                        <span class="username" ng-if="message.username">[{{message.username}}]</span> {{message.text}}
+                    </div>
+                </div>
+                <input type="text" ng-model="newMessage" placeholder="Type a message..." ng-keypress="sendMessage($event)">
+                <button ng-click="sendMessage()">Send</button>
+            </div>
+
+            <!-- Private chat messages -->
+            <div class="private-message" ng-repeat="(recipient, messages) in privateChats" 
+                 ng-class="{'active': activeTab === recipient}">
+                <div class="chat-messages">
+                    <div class="private-messages">
+                        <div ng-repeat="message in messages" class="message {{message.type}}">
+                            <span class="username" ng-if="message.username">[{{message.username}}]</span> {{message.text}}
+                        </div>
+                    </div>
+                    <div class="message-input">
+                        <input type="text" ng-model="privateMessages[recipient]" 
+                               placeholder="Type a private message to {{recipient}}..." 
+                               ng-keypress="sendPrivateMessage(recipient, $event)">
+                        <button ng-click="sendPrivateMessage(recipient)">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="users-section">
+            <h3>Online Users<span class="user-count">({{onlineUsers.length}})</span></h3>
+            <div class="user-list">
+                <div ng-if="onlineUsers.length === 0" class="no-users">
+                    No users online
+                </div>
+                <div ng-repeat="user in onlineUsers track by user.name" class="user-item" ng-click="startPrivateChat(user.name)">
+                    <div>
+                        <span class="user-icon"></span> {{user.name}}
+                    </div>
+                    <div ng-if="unreadCounts[user.name] > 0" class="unread-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug information panel -->
+    <div class="debug" ng-class="{'show': debugMode}">
+        <h4>Debug Info:</h4>
+        <p>Connection Status: {{isConnected}}</p>
+        <p>WebSocket State: {{wsState}}</p>
+        <p>Username: {{username}}</p>
+        <p>Server Address: {{serverAddress}}</p>
+        <p>Online Users: {{onlineUsers}}</p>
+        <p>Active Tab: {{activeTab}}</p>
+        <p>Private Chats: {{privateChats}}</p>
+    </div>
+</body>
+</html> 
